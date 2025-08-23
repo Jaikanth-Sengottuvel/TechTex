@@ -24,7 +24,9 @@ import {
   Star,
   Edit3,
   Plus,
-  Layers
+  Layers,
+  Group,
+  Hexagon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -37,14 +39,191 @@ const getLayerIcon = (type: string) => {
     case 'line': return Minus;
     case 'triangle': return Triangle;
     case 'star': return Star;
+    case 'polygon': return Hexagon;
+    case 'path': return Edit3;
+    case 'group': return Group;
     default: return Square;
   }
 };
+
+interface LayerItemProps {
+  layer: any;
+  isSelected: boolean;
+  isHovered: boolean;
+  isEditing: boolean;
+  editingName: string;
+  onSelect: (e: React.MouseEvent) => void;
+  onHover: () => void;
+  onHoverEnd: () => void;
+  onToggleVisibility: (e: React.MouseEvent) => void;
+  onToggleLock: (e: React.MouseEvent) => void;
+  onStartEditing: () => void;
+  onEndEditing: () => void;
+  onNameChange: (value: string) => void;
+  onDelete: (e: React.MouseEvent) => void;
+  onDuplicate: (e: React.MouseEvent) => void;
+  onMoveUp: (e: React.MouseEvent) => void;
+  onMoveDown: (e: React.MouseEvent) => void;
+  depth?: number;
+}
+
+function LayerItem({ 
+  layer, 
+  isSelected, 
+  isHovered, 
+  isEditing, 
+  editingName, 
+  onSelect, 
+  onHover, 
+  onHoverEnd,
+  onToggleVisibility, 
+  onToggleLock, 
+  onStartEditing, 
+  onEndEditing, 
+  onNameChange, 
+  onDelete, 
+  onDuplicate, 
+  onMoveUp, 
+  onMoveDown,
+  depth = 0 
+}: LayerItemProps) {
+  const IconComponent = getLayerIcon(layer.type);
+  
+  return (
+    <div
+      className={cn(
+        'group flex items-center px-2 py-1.5 hover:bg-gray-50 transition-all duration-200 ease-in-out',
+        isSelected && 'bg-blue-50 border-r-2 border-blue-500',
+        isHovered && !isSelected && 'bg-gray-50',
+        'animate-in fade-in duration-200'
+      )}
+      style={{ paddingLeft: `${8 + depth * 16}px` }}
+      onMouseEnter={onHover}
+      onMouseLeave={onHoverEnd}
+      onClick={onSelect}
+    >
+      {/* Layer Icon */}
+      <div className="flex items-center justify-center w-4 h-4 mr-2">
+        <IconComponent 
+          className={cn(
+            'w-3 h-3 transition-colors duration-200',
+            layer.visible ? 'text-gray-700' : 'text-gray-400',
+            isSelected && 'text-blue-600'
+          )} 
+        />
+      </div>
+
+      {/* Layer Name */}
+      <div className="flex-1 min-w-0">
+        {isEditing ? (
+          <Input
+            value={editingName}
+            onChange={(e) => onNameChange(e.target.value)}
+            onBlur={onEndEditing}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                onEndEditing();
+              } else if (e.key === 'Escape') {
+                onEndEditing();
+              }
+            }}
+            className="h-6 px-1 text-xs border-blue-500 focus:ring-1 focus:ring-blue-500"
+            autoFocus
+          />
+        ) : (
+          <span 
+            className={cn(
+              'text-xs truncate cursor-pointer transition-colors duration-200',
+              layer.visible ? 'text-gray-900' : 'text-gray-400',
+              isSelected && 'text-blue-900 font-medium'
+            )}
+            onDoubleClick={onStartEditing}
+          >
+            {layer.name}
+          </span>
+        )}
+      </div>
+
+      {/* Layer Controls */}
+      <div className={cn(
+        'flex items-center space-x-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+        isSelected && 'opacity-100'
+      )}>
+        {/* Visibility Toggle */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onToggleVisibility}
+          className={cn(
+            'w-6 h-6 p-0 hover:bg-gray-200 transition-all duration-200',
+            !layer.visible && 'text-gray-400'
+          )}
+        >
+          {layer.visible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+        </Button>
+
+        {/* Lock Toggle */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onToggleLock}
+          className={cn(
+            'w-6 h-6 p-0 hover:bg-gray-200 transition-all duration-200',
+            layer.locked && 'text-orange-500'
+          )}
+        >
+          {layer.locked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+        </Button>
+
+        {/* More Actions */}
+        <div className="flex items-center space-x-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMoveUp}
+            className="w-6 h-6 p-0 hover:bg-gray-200 transition-all duration-200"
+            title="Move Up"
+          >
+            <ChevronUp className="w-3 h-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMoveDown}
+            className="w-6 h-6 p-0 hover:bg-gray-200 transition-all duration-200"
+            title="Move Down"
+          >
+            <ChevronDown className="w-3 h-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onDuplicate}
+            className="w-6 h-6 p-0 hover:bg-gray-200 transition-all duration-200"
+            title="Duplicate"
+          >
+            <Copy className="w-3 h-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onDelete}
+            className="w-6 h-6 p-0 hover:bg-red-100 hover:text-red-600 transition-all duration-200"
+            title="Delete"
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function LayersPanel() {
   const { 
     layers, 
     selectedLayerIds, 
+    hoveredLayerId,
     selectLayer, 
     updateLayer, 
     deleteLayer, 
@@ -52,7 +231,8 @@ export function LayersPanel() {
     moveLayer,
     clearSelection,
     groupLayers,
-    ungroupLayers
+    ungroupLayers,
+    setHoveredLayer
   } = useDesignStore();
 
   const [editingLayerId, setEditingLayerId] = useState<string>('');
@@ -81,13 +261,12 @@ export function LayersPanel() {
     }
   };
 
-  const handleNameEditStart = (layerId: string, currentName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const startEditing = (layerId: string, currentName: string) => {
     setEditingLayerId(layerId);
     setEditingName(currentName);
   };
 
-  const handleNameEditSave = () => {
+  const endEditing = () => {
     if (editingLayerId && editingName.trim()) {
       updateLayer(editingLayerId, { name: editingName.trim() });
     }
@@ -95,86 +274,120 @@ export function LayersPanel() {
     setEditingName('');
   };
 
-  const handleNameEditCancel = () => {
-    setEditingLayerId('');
-    setEditingName('');
-  };
-
-  const handleDeleteLayer = (layerId: string, e: React.MouseEvent) => {
+  const handleDelete = (layerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     deleteLayer(layerId);
   };
 
-  const handleDuplicateLayer = (layerId: string, e: React.MouseEvent) => {
+  const handleDuplicate = (layerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     duplicateLayer(layerId);
   };
 
-  const handleMoveLayer = (layerId: string, direction: 'up' | 'down' | 'top' | 'bottom') => {
-    moveLayer(layerId, direction);
+  const handleMoveUp = (layerId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    moveLayer(layerId, 'up');
   };
 
-  const handleDragStart = (e: React.DragEvent, layerId: string) => {
-    e.dataTransfer.setData('text/plain', layerId);
+  const handleMoveDown = (layerId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    moveLayer(layerId, 'down');
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+  const handleAddLayer = () => {
+    // Add a default rectangle layer
+    const newLayer = {
+      type: 'rectangle' as const,
+      name: 'Rectangle',
+      transform: {
+        x: 100,
+        y: 100,
+        width: 120,
+        height: 80,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+      },
+      style: {
+        fill: '#3f51b5',
+        stroke: '#303f9f',
+        strokeWidth: 2,
+        opacity: 1,
+      },
+      visible: true,
+      locked: false,
+    };
+
+    // This would need to be implemented in the store
+    // addLayer(newLayer);
   };
 
-  const handleDrop = (e: React.DragEvent, targetLayerId: string) => {
-    e.preventDefault();
-    const draggedLayerId = e.dataTransfer.getData('text/plain');
-    
-    if (draggedLayerId !== targetLayerId) {
-      const draggedLayer = layers.find(l => l.id === draggedLayerId);
-      const targetLayer = layers.find(l => l.id === targetLayerId);
-      
-      if (draggedLayer && targetLayer) {
-        updateLayer(draggedLayerId, { zIndex: targetLayer.zIndex });
-        updateLayer(targetLayerId, { zIndex: draggedLayer.zIndex });
-      }
+  const handleGroupSelected = () => {
+    if (selectedLayerIds.length > 1) {
+      groupLayers(selectedLayerIds);
     }
   };
 
+  const handleUngroupSelected = () => {
+    selectedLayerIds.forEach(id => {
+      const layer = layers.find(l => l.id === id);
+      if (layer && layer.type === 'group') {
+        ungroupLayers(id);
+      }
+    });
+  };
+
   return (
-    <div className="w-80 bg-gradient-to-b from-card via-card to-card/95 border-l border-border/50 flex flex-col backdrop-blur-lg">
+    <div className="flex flex-col h-full w-64 bg-white border-r border-gray-200 animate-in slide-in-from-left duration-300">
       {/* Header */}
-      <div className="p-5 border-b border-border/30 bg-gradient-to-r from-accent/5 to-primary/5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-lg bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
-            Layers
-          </h2>
-          <div className="flex items-center space-x-1">
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="w-8 h-8 hover:bg-primary/10 hover:text-primary rounded-xl"
-              onClick={groupLayers}
-              disabled={selectedLayerIds.length < 2}
-              title="Group Layers (Ctrl+G)"
-            >
-              <Layers className="w-4 h-4" />
-            </Button>
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="w-8 h-8 hover:bg-primary/10 hover:text-primary rounded-xl"
-              title="Add Layer"
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
+      <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center space-x-2">
+          <Layers className="w-4 h-4 text-gray-600" />
+          <h3 className="text-sm font-semibold text-gray-900">Layers</h3>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleAddLayer}
+          className="w-7 h-7 p-0 hover:bg-gray-200 transition-colors duration-200"
+          title="Add Layer"
+        >
+          <Plus className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Layer Actions */}
+      <div className="p-3 space-y-2 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGroupSelected}
+            disabled={selectedLayerIds.length < 2}
+            className="flex-1 h-8 text-xs border-gray-300 hover:bg-blue-50 hover:border-blue-300 disabled:opacity-50 transition-all duration-200"
+          >
+            <Group className="w-3 h-3 mr-1" />
+            Group
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleUngroupSelected}
+            disabled={selectedLayerIds.length === 0 || !selectedLayerIds.some(id => layers.find(l => l.id === id)?.type === 'group')}
+            className="flex-1 h-8 text-xs border-gray-300 hover:bg-blue-50 hover:border-blue-300 disabled:opacity-50 transition-all duration-200"
+          >
+            <Group className="w-3 h-3 mr-1" />
+            Ungroup
+          </Button>
         </div>
 
-        {/* Layer Actions */}
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => selectedLayerIds.forEach(id => duplicateLayer(id))}
             disabled={selectedLayerIds.length === 0}
-            className="flex-1 h-8 text-xs border-border/50 hover:bg-primary/10 hover:border-primary/30"
+            className="flex-1 h-8 text-xs border-gray-300 hover:bg-green-50 hover:border-green-300 disabled:opacity-50 transition-all duration-200"
           >
             <Copy className="w-3 h-3 mr-1" />
             Duplicate
@@ -184,7 +397,7 @@ export function LayersPanel() {
             size="sm"
             onClick={() => selectedLayerIds.forEach(id => deleteLayer(id))}
             disabled={selectedLayerIds.length === 0}
-            className="flex-1 h-8 text-xs border-border/50 hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+            className="flex-1 h-8 text-xs border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600 disabled:opacity-50 transition-all duration-200"
           >
             <Trash2 className="w-3 h-3 mr-1" />
             Delete
@@ -193,13 +406,13 @@ export function LayersPanel() {
       </div>
 
       {/* Layer Count Info */}
-      <div className="px-5 py-3 border-b border-border/30 bg-muted/20">
+      <div className="px-3 py-2 border-b border-gray-200 bg-gray-25">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
+          <span className="text-gray-600">
             {layers.length} layer{layers.length !== 1 ? 's' : ''}
           </span>
           {selectedLayerIds.length > 0 && (
-            <span className="text-primary font-medium">
+            <span className="text-blue-600 font-medium animate-in fade-in duration-300">
               {selectedLayerIds.length} selected
             </span>
           )}
@@ -208,175 +421,45 @@ export function LayersPanel() {
 
       {/* Layers List */}
       <ScrollArea className="flex-1">
-        <div className="p-2">
+        <div className="p-1 space-y-0.5">
           {sortedLayers.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Layers className="w-8 h-8 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">No layers yet</p>
-              <p className="text-xs">Add elements to see them here</p>
+            <div className="flex flex-col items-center justify-center py-8 text-center animate-in fade-in duration-500">
+              <Layers className="w-8 h-8 text-gray-300 mb-2" />
+              <p className="text-sm text-gray-500 mb-1">No layers yet</p>
+              <p className="text-xs text-gray-400">Start drawing to create layers</p>
             </div>
           ) : (
-            <div className="space-y-1">
-              {sortedLayers.map((layer, index) => {
-                const Icon = getLayerIcon(layer.type);
-                const isSelected = selectedLayerIds.includes(layer.id);
-                const isEditing = editingLayerId === layer.id;
-
-                return (
-                  <div
-                    key={layer.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, layer.id)}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, layer.id)}
-                    onClick={(e) => handleLayerClick(layer.id, e)}
-                    className={cn(
-                      "group relative bg-background/30 rounded-lg p-3 border transition-all duration-200 cursor-pointer hover:bg-background/50",
-                      isSelected 
-                        ? "border-primary/50 bg-primary/10 shadow-md" 
-                        : "border-border/30 hover:border-border/50",
-                      layer.locked && "opacity-60"
-                    )}
-                  >
-                    {/* Layer Content */}
-                    <div className="flex items-center space-x-3">
-                      {/* Layer Icon */}
-                      <div className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
-                        isSelected 
-                          ? "bg-primary/20 text-primary" 
-                          : "bg-muted/50 text-muted-foreground group-hover:bg-muted/70"
-                      )}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-
-                      {/* Layer Info */}
-                      <div className="flex-1 min-w-0">
-                        {isEditing ? (
-                          <Input
-                            value={editingName}
-                            onChange={(e) => setEditingName(e.target.value)}
-                            onBlur={handleNameEditSave}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleNameEditSave();
-                              if (e.key === 'Escape') handleNameEditCancel();
-                            }}
-                            className="h-6 text-sm px-2 py-0"
-                            autoFocus
-                          />
-                        ) : (
-                          <div>
-                            <h4 className={cn(
-                              "text-sm font-medium truncate transition-colors",
-                              isSelected ? "text-primary" : "text-foreground"
-                            )}>
-                              {layer.name}
-                            </h4>
-                            <p className="text-xs text-muted-foreground">
-                              {layer.width}×{layer.height}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Layer Controls */}
-                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {/* Edit Name */}
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="w-6 h-6 hover:bg-primary/20 hover:text-primary"
-                          onClick={(e) => handleNameEditStart(layer.id, layer.name, e)}
-                        >
-                          <Edit3 className="w-3 h-3" />
-                        </Button>
-
-                        {/* Visibility Toggle */}
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="w-6 h-6 hover:bg-primary/20 hover:text-primary"
-                          onClick={(e) => handleVisibilityToggle(layer.id, e)}
-                        >
-                          {layer.visible ? (
-                            <Eye className="w-3 h-3" />
-                          ) : (
-                            <EyeOff className="w-3 h-3 text-muted-foreground" />
-                          )}
-                        </Button>
-
-                        {/* Lock Toggle */}
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="w-6 h-6 hover:bg-primary/20 hover:text-primary"
-                          onClick={(e) => handleLockToggle(layer.id, e)}
-                        >
-                          {layer.locked ? (
-                            <Lock className="w-3 h-3 text-orange-500" />
-                          ) : (
-                            <Unlock className="w-3 h-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Layer Order Controls */}
-                    {isSelected && (
-                      <div className="absolute -right-2 top-1/2 transform -translate-y-1/2 flex flex-col bg-background border border-border/50 rounded-lg shadow-lg">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="w-6 h-6 rounded-b-none"
-                          onClick={() => handleMoveLayer(layer.id, 'up')}
-                          disabled={index === 0}
-                        >
-                          <ChevronUp className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="w-6 h-6 rounded-t-none"
-                          onClick={() => handleMoveLayer(layer.id, 'down')}
-                          disabled={index === sortedLayers.length - 1}
-                        >
-                          <ChevronDown className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Selection Indicator */}
-                    {isSelected && (
-                      <div className="absolute -left-1 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-accent rounded-r-full" />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            sortedLayers.map((layer, index) => (
+              <LayerItem
+                key={layer.id}
+                layer={layer}
+                isSelected={selectedLayerIds.includes(layer.id)}
+                isHovered={hoveredLayerId === layer.id}
+                isEditing={editingLayerId === layer.id}
+                editingName={editingName}
+                onSelect={(e) => handleLayerClick(layer.id, e)}
+                onHover={() => setHoveredLayer(layer.id)}
+                onHoverEnd={() => setHoveredLayer(null)}
+                onToggleVisibility={(e) => handleVisibilityToggle(layer.id, e)}
+                onToggleLock={(e) => handleLockToggle(layer.id, e)}
+                onStartEditing={() => startEditing(layer.id, layer.name)}
+                onEndEditing={endEditing}
+                onNameChange={setEditingName}
+                onDelete={(e) => handleDelete(layer.id, e)}
+                onDuplicate={(e) => handleDuplicate(layer.id, e)}
+                onMoveUp={(e) => handleMoveUp(layer.id, e)}
+                onMoveDown={(e) => handleMoveDown(layer.id, e)}
+              />
+            ))
           )}
         </div>
       </ScrollArea>
 
-      {/* Footer Actions */}
-      <div className="p-4 border-t border-border/30 bg-gradient-to-r from-primary/5 to-accent/5">
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={clearSelection}
-            className="flex-1 border-border/50 hover:bg-primary/10 hover:border-primary/30"
-          >
-            Clear Selection
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={ungroupLayers}
-            disabled={!selectedLayerIds.some(id => layers.find(l => l.id === id)?.type === 'group')}
-            className="flex-1 border-border/50 hover:bg-primary/10 hover:border-primary/30"
-          >
-            Ungroup
-          </Button>
+      {/* Footer with shortcuts */}
+      <div className="p-3 border-t border-gray-200 bg-gray-50">
+        <div className="text-xs text-gray-500 space-y-1">
+          <p>Double-click to rename</p>
+          <p>Ctrl+click for multi-select</p>
         </div>
       </div>
     </div>

@@ -1,366 +1,509 @@
 
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { useDesignStore } from '@/stores/designStore';
+import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
+import { useDesignStore, Tool } from '@/stores/designStore';
 import { 
-  MousePointer2, 
-  Square, 
-  Circle, 
-  Type, 
-  Image,
-  Pen,
-  Pencil,
-  Eraser,
+  MousePointer2,
   Hand,
-  Move,
-  RotateCcw,
-  RotateCw,
-  Copy,
-  Trash2,
+  Square,
+  Circle,
+  Triangle,
+  Star,
+  Hexagon,
+  Minus,
+  Edit3,
+  Pen,
+  Eraser,
+  Type,
+  Pipette,
   AlignLeft,
   AlignCenter,
   AlignRight,
-  AlignJustify,
-  Layers,
-  Eye,
-  Lock,
+  AlignTop,
+  AlignMiddle,
+  AlignBottom,
+  DistributeHorizontally,
+  DistributeVertically,
+  MoveUp,
+  MoveDown,
+  Group,
+  Ungroup,
+  Copy,
+  Clipboard,
+  RotateCcw,
+  RotateCw,
   ZoomIn,
   ZoomOut,
-  Download,
-  Upload,
-  Palette,
-  Minus,
-  Triangle,
-  Star,
-  Heart,
-  Diamond,
-  Hexagon,
-  ChevronUp,
-  ChevronDown,
-  CornerUpLeft,
-  CornerUpRight,
-  Maximize
+  Maximize,
+  Grid,
+  Eye,
+  EyeOff,
+  Lock,
+  Unlock,
+  Palette
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const tools: { id: Tool; icon: React.ComponentType<any>; label: string; shortcut: string }[] = [
+  { id: 'move', icon: MousePointer2, label: 'Move', shortcut: 'V' },
+  { id: 'hand', icon: Hand, label: 'Hand', shortcut: 'H' },
+  { id: 'rectangle', icon: Square, label: 'Rectangle', shortcut: 'R' },
+  { id: 'circle', icon: Circle, label: 'Circle', shortcut: 'O' },
+  { id: 'triangle', icon: Triangle, label: 'Triangle', shortcut: 'T' },
+  { id: 'star', icon: Star, label: 'Star', shortcut: 'S' },
+  { id: 'polygon', icon: Hexagon, label: 'Polygon', shortcut: 'P' },
+  { id: 'line', icon: Minus, label: 'Line', shortcut: 'L' },
+  { id: 'pencil', icon: Edit3, label: 'Pencil', shortcut: 'B' },
+  { id: 'pen', icon: Pen, label: 'Pen', shortcut: 'P' },
+  { id: 'eraser', icon: Eraser, label: 'Eraser', shortcut: 'E' },
+  { id: 'text', icon: Type, label: 'Text', shortcut: 'T' },
+  { id: 'eyedropper', icon: Pipette, label: 'Eyedropper', shortcut: 'I' },
+];
+
 export function Toolbar() {
-  const { 
-    tool, 
-    setTool, 
-    selectedLayerIds, 
-    deleteLayer, 
-    duplicateLayer, 
-    zoom, 
-    setZoom, 
-    undo, 
-    redo, 
-    groupLayers, 
-    ungroupLayers, 
+  const {
+    currentTool,
+    setCurrentTool,
+    selectedLayerIds,
+    layers,
+    canvas,
+    eraserSize,
+    setEraserSize,
+    setZoom,
+    setPan,
+    resetView,
+    fitToSelection,
     alignLayers,
+    distributeLayers,
+    moveLayer,
+    groupLayers,
+    ungroupLayers,
     copyLayers,
     pasteLayers,
-    resetZoom,
-    fitToSelection,
-    addLayer,
-    layers
+    undo,
+    redo,
+    updateLayer,
   } = useDesignStore();
 
-  const tools = [
-    // Selection Tools
-    { id: 'select', icon: MousePointer2, label: 'Select (V)', group: 'selection' },
-    { id: 'pan', icon: Hand, label: 'Hand (Space)', group: 'selection' },
+  const selectedLayers = layers.filter(layer => selectedLayerIds.includes(layer.id));
+  const hasSelection = selectedLayerIds.length > 0;
+  const canGroup = selectedLayerIds.length > 1;
+  const canUngroup = selectedLayerIds.length === 1 && selectedLayers[0]?.type === 'group';
 
-    // Shape Tools
-    { id: 'rectangle', icon: Square, label: 'Rectangle (R)', group: 'shapes' },
-    { id: 'circle', icon: Circle, label: 'Circle (O)', group: 'shapes' },
-    { id: 'triangle', icon: Triangle, label: 'Triangle', group: 'shapes' },
-    { id: 'star', icon: Star, label: 'Star', group: 'shapes' },
-    { id: 'polygon', icon: Hexagon, label: 'Polygon', group: 'shapes' },
-    { id: 'line', icon: Minus, label: 'Line (L)', group: 'shapes' },
+  const handleZoomIn = () => setZoom(canvas.zoom * 1.2);
+  const handleZoomOut = () => setZoom(canvas.zoom / 1.2);
+  
+  // Get current fill/stroke from selected layer
+  const currentFill = selectedLayers.length === 1 ? selectedLayers[0].style.fill : '#3f51b5';
+  const currentStroke = selectedLayers.length === 1 ? selectedLayers[0].style.stroke : '#303f9f';
+  const currentStrokeWidth = selectedLayers.length === 1 ? selectedLayers[0].style.strokeWidth : 2;
+  const currentOpacity = selectedLayers.length === 1 ? selectedLayers[0].style.opacity : 1;
 
-    // Drawing Tools
-    { id: 'pen', icon: Pen, label: 'Pen (P)', group: 'drawing' },
-    { id: 'pencil', icon: Pencil, label: 'Pencil (B)', group: 'drawing' },
-    { id: 'eraser', icon: Eraser, label: 'Eraser (E)', group: 'drawing' },
-
-    // Text & Media
-    { id: 'text', icon: Type, label: 'Text (T)', group: 'content' },
-    { id: 'image', icon: Image, label: 'Image', group: 'content' },
-  ];
-
-  const handleToolClick = (toolId: string) => {
-    if (toolId === 'image') {
-      // Trigger file upload for image tool
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-              const newLayer = {
-                type: 'image' as const,
-                name: file.name,
-                x: 100,
-                y: 100,
-                width: Math.min(img.width, 300),
-                height: Math.min(img.height, 300),
-                src: event.target?.result as string,
-                visible: true,
-                locked: false,
-                zIndex: layers.length,
-              };
-              addLayer(newLayer);
-            };
-            img.src = event.target?.result as string;
-          };
-          reader.readAsDataURL(file);
-        }
-      };
-      input.click();
-    } else {
-      setTool(toolId);
-    }
+  const handleColorChange = (type: 'fill' | 'stroke', color: string) => {
+    selectedLayerIds.forEach(id => {
+      updateLayer(id, {
+        style: {
+          ...layers.find(l => l.id === id)?.style,
+          [type]: color,
+        },
+      });
+    });
   };
 
-  const handleDelete = () => {
-    selectedLayerIds.forEach(id => deleteLayer(id));
+  const handleStrokeWidthChange = (width: number) => {
+    selectedLayerIds.forEach(id => {
+      updateLayer(id, {
+        style: {
+          ...layers.find(l => l.id === id)?.style,
+          strokeWidth: width,
+        },
+      });
+    });
   };
 
-  const handleDuplicate = () => {
-    selectedLayerIds.forEach(id => duplicateLayer(id));
+  const handleOpacityChange = (opacity: number) => {
+    selectedLayerIds.forEach(id => {
+      updateLayer(id, {
+        style: {
+          ...layers.find(l => l.id === id)?.style,
+          opacity: opacity / 100,
+        },
+      });
+    });
   };
-
-  const groupedTools = tools.reduce((acc, tool) => {
-    if (!acc[tool.group]) acc[tool.group] = [];
-    acc[tool.group].push(tool);
-    return acc;
-  }, {} as Record<string, typeof tools>);
 
   return (
-    <div className="h-16 bg-white border-b border-gray-200 flex items-center px-4 space-x-4 shadow-sm">
-      {/* Logo */}
-      <div className="flex items-center space-x-2 mr-6">
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-          <Layers className="w-4 h-4 text-white" />
-        </div>
-        <span className="font-bold text-lg">Designer</span>
-      </div>
-
-      {/* Tool Groups */}
-      {Object.entries(groupedTools).map(([group, groupTools], groupIndex) => (
-        <div key={group} className="flex items-center space-x-1">
-          {groupIndex > 0 && <Separator orientation="vertical" className="h-8 mx-2" />}
-          {groupTools.map((toolItem) => (
-            <Button
-              key={toolItem.id}
-              variant={tool === toolItem.id ? 'default' : 'ghost'}
-              size="icon"
-              onClick={() => handleToolClick(toolItem.id)}
-              className={cn(
-                'w-10 h-10 transition-all duration-200 relative',
-                tool === toolItem.id 
-                  ? 'bg-blue-500 text-white shadow-md ring-2 ring-blue-200' 
-                  : 'hover:bg-gray-100 text-gray-700',
-                // Ensure drawing tools are always visible
-                ['pen', 'pencil', 'eraser'].includes(toolItem.id) && 'text-gray-900 hover:text-gray-900'
-              )}
-              title={toolItem.label}
+    <div className="flex items-center gap-1 px-4 py-2 bg-white border-b border-gray-200 shadow-sm">
+      {/* Main Tools */}
+      <div className="flex items-center gap-1">
+        {tools.map(tool => (
+          <Button
+            key={tool.id}
+            variant={currentTool === tool.id ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setCurrentTool(tool.id)}
+            className={cn(
+              'w-8 h-8 p-1.5 relative group',
+              currentTool === tool.id && 'bg-blue-100 border-blue-300 text-blue-700'
+            )}
+            title={`${tool.label} (${tool.shortcut})`}
+          >
+            <tool.icon className="w-4 h-4" />
+            <Badge
+              variant="secondary"
+              className="absolute -top-1 -right-1 w-4 h-4 p-0 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
             >
-              <toolItem.icon className="w-5 h-5" />
-              {tool === toolItem.id && (
-                <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-300 rounded-full" />
-              )}
-            </Button>
-          ))}
+              {tool.shortcut}
+            </Badge>
+          </Button>
+        ))}
+      </div>
+
+      <Separator orientation="vertical" className="h-6" />
+
+      {/* Color and Style Controls */}
+      <div className="flex items-center gap-2">
+        {/* Fill Color */}
+        <div className="flex items-center gap-1">
+          <label className="text-xs text-gray-600">Fill</label>
+          <div className="relative">
+            <input
+              type="color"
+              value={currentFill}
+              onChange={(e) => handleColorChange('fill', e.target.value)}
+              className="w-6 h-6 rounded border-2 border-gray-300 cursor-pointer"
+              disabled={!hasSelection}
+            />
+            <Palette className="w-3 h-3 absolute -bottom-1 -right-1 bg-white rounded-full p-0.5" />
+          </div>
         </div>
-      ))}
 
-      <Separator orientation="vertical" className="h-8" />
+        {/* Stroke Color */}
+        <div className="flex items-center gap-1">
+          <label className="text-xs text-gray-600">Stroke</label>
+          <input
+            type="color"
+            value={currentStroke}
+            onChange={(e) => handleColorChange('stroke', e.target.value)}
+            className="w-6 h-6 rounded border-2 border-gray-300 cursor-pointer"
+            disabled={!hasSelection}
+          />
+        </div>
 
-      {/* History Actions */}
-      <div className="flex items-center space-x-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={undo}
-          className="w-10 h-10 hover:bg-gray-100"
-          title="Undo (Ctrl+Z)"
-        >
-          <RotateCcw className="w-5 h-5" />
-        </Button>
+        {/* Stroke Width */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-600">Width</label>
+          <Slider
+            value={[currentStrokeWidth || 1]}
+            onValueChange={([value]) => handleStrokeWidthChange(value)}
+            max={20}
+            min={0}
+            step={1}
+            className="w-16"
+            disabled={!hasSelection}
+          />
+          <span className="text-xs text-gray-500 w-6">{currentStrokeWidth}px</span>
+        </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={redo}
-          className="w-10 h-10 hover:bg-gray-100"
-          title="Redo (Ctrl+Shift+Z)"
-        >
-          <RotateCw className="w-5 h-5" />
-        </Button>
+        {/* Opacity */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-600">Opacity</label>
+          <Slider
+            value={[Math.round(currentOpacity * 100)]}
+            onValueChange={([value]) => handleOpacityChange(value)}
+            max={100}
+            min={0}
+            step={1}
+            className="w-16"
+            disabled={!hasSelection}
+          />
+          <span className="text-xs text-gray-500 w-8">{Math.round(currentOpacity * 100)}%</span>
+        </div>
       </div>
 
-      <Separator orientation="vertical" className="h-8" />
+      <Separator orientation="vertical" className="h-6" />
 
-      {/* Layer Actions */}
-      <div className="flex items-center space-x-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={copyLayers}
-          disabled={selectedLayerIds.length === 0}
-          className="w-10 h-10 hover:bg-gray-100"
-          title="Copy (Ctrl+C)"
-        >
-          <Copy className="w-5 h-5" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={pasteLayers}
-          className="w-10 h-10 hover:bg-gray-100"
-          title="Paste (Ctrl+V)"
-        >
-          <CornerUpLeft className="w-5 h-5" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleDuplicate}
-          disabled={selectedLayerIds.length === 0}
-          className="w-10 h-10 hover:bg-gray-100"
-          title="Duplicate (Ctrl+D)"
-        >
-          <Copy className="w-5 h-5" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleDelete}
-          disabled={selectedLayerIds.length === 0}
-          className="w-10 h-10 hover:bg-red-50 hover:text-red-600"
-          title="Delete (Del)"
-        >
-          <Trash2 className="w-5 h-5" />
-        </Button>
-      </div>
-
-      <Separator orientation="vertical" className="h-8" />
+      {/* Eraser Size (shown only when eraser is active) */}
+      {currentTool === 'eraser' && (
+        <>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-600">Size</label>
+            <Slider
+              value={[eraserSize]}
+              onValueChange={([value]) => setEraserSize(value)}
+              max={100}
+              min={5}
+              step={5}
+              className="w-20"
+            />
+            <span className="text-xs text-gray-500 w-8">{eraserSize}px</span>
+          </div>
+          <Separator orientation="vertical" className="h-6" />
+        </>
+      )}
 
       {/* Alignment Tools */}
-      <div className="flex items-center space-x-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => alignLayers('left')}
-          disabled={selectedLayerIds.length < 2}
-          className="w-10 h-10 hover:bg-gray-100"
-          title="Align Left"
-        >
-          <AlignLeft className="w-5 h-5" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => alignLayers('center')}
-          disabled={selectedLayerIds.length < 2}
-          className="w-10 h-10 hover:bg-gray-100"
-          title="Align Center"
-        >
-          <AlignCenter className="w-5 h-5" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => alignLayers('right')}
-          disabled={selectedLayerIds.length < 2}
-          className="w-10 h-10 hover:bg-gray-100"
-          title="Align Right"
-        >
-          <AlignRight className="w-5 h-5" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={groupLayers}
-          disabled={selectedLayerIds.length < 2}
-          className="w-10 h-10 hover:bg-gray-100"
-          title="Group (Ctrl+G)"
-        >
-          <Layers className="w-5 h-5" />
-        </Button>
-      </div>
-
-      <Separator orientation="vertical" className="h-8" />
-
-      {/* Zoom Controls */}
-      <div className="flex items-center space-x-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setZoom(zoom / 1.2)}
-          className="w-8 h-8 hover:bg-gray-100"
-          title="Zoom Out (-)"
-        >
-          <ZoomOut className="w-4 h-4" />
-        </Button>
-
+      <div className="flex items-center gap-1">
         <Button
           variant="ghost"
           size="sm"
-          onClick={resetZoom}
-          className="min-w-[3rem] h-8 px-2 hover:bg-gray-100 text-xs"
-          title="Reset Zoom (Ctrl+0)"
+          onClick={() => alignLayers('left')}
+          disabled={selectedLayerIds.length < 2}
+          className="w-8 h-8 p-1.5"
+          title="Align Left"
         >
-          {Math.round(zoom * 100)}%
+          <AlignLeft className="w-4 h-4" />
         </Button>
-
         <Button
           variant="ghost"
-          size="icon"
-          onClick={() => setZoom(zoom * 1.2)}
-          className="w-8 h-8 hover:bg-gray-100"
-          title="Zoom In (+)"
+          size="sm"
+          onClick={() => alignLayers('center')}
+          disabled={selectedLayerIds.length < 2}
+          className="w-8 h-8 p-1.5"
+          title="Align Center"
+        >
+          <AlignCenter className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => alignLayers('right')}
+          disabled={selectedLayerIds.length < 2}
+          className="w-8 h-8 p-1.5"
+          title="Align Right"
+        >
+          <AlignRight className="w-4 h-4" />
+        </Button>
+        
+        <Separator orientation="vertical" className="h-4 mx-1" />
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => alignLayers('top')}
+          disabled={selectedLayerIds.length < 2}
+          className="w-8 h-8 p-1.5"
+          title="Align Top"
+        >
+          <AlignTop className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => alignLayers('middle')}
+          disabled={selectedLayerIds.length < 2}
+          className="w-8 h-8 p-1.5"
+          title="Align Middle"
+        >
+          <AlignMiddle className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => alignLayers('bottom')}
+          disabled={selectedLayerIds.length < 2}
+          className="w-8 h-8 p-1.5"
+          title="Align Bottom"
+        >
+          <AlignBottom className="w-4 h-4" />
+        </Button>
+
+        <Separator orientation="vertical" className="h-4 mx-1" />
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => distributeLayers('horizontal')}
+          disabled={selectedLayerIds.length < 3}
+          className="w-8 h-8 p-1.5"
+          title="Distribute Horizontally"
+        >
+          <DistributeHorizontally className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => distributeLayers('vertical')}
+          disabled={selectedLayerIds.length < 3}
+          className="w-8 h-8 p-1.5"
+          title="Distribute Vertically"
+        >
+          <DistributeVertically className="w-4 h-4" />
+        </Button>
+      </div>
+
+      <Separator orientation="vertical" className="h-6" />
+
+      {/* Arrange Tools */}
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => selectedLayerIds.forEach(id => moveLayer(id, 'up'))}
+          disabled={!hasSelection}
+          className="w-8 h-8 p-1.5"
+          title="Bring Forward"
+        >
+          <MoveUp className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => selectedLayerIds.forEach(id => moveLayer(id, 'down'))}
+          disabled={!hasSelection}
+          className="w-8 h-8 p-1.5"
+          title="Send Backward"
+        >
+          <MoveDown className="w-4 h-4" />
+        </Button>
+
+        <Separator orientation="vertical" className="h-4 mx-1" />
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => groupLayers(selectedLayerIds)}
+          disabled={!canGroup}
+          className="w-8 h-8 p-1.5"
+          title="Group (Ctrl+G)"
+        >
+          <Group className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => canUngroup && ungroupLayers(selectedLayerIds[0])}
+          disabled={!canUngroup}
+          className="w-8 h-8 p-1.5"
+          title="Ungroup (Ctrl+Shift+G)"
+        >
+          <Ungroup className="w-4 h-4" />
+        </Button>
+      </div>
+
+      <Separator orientation="vertical" className="h-6" />
+
+      {/* Edit Actions */}
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={undo}
+          className="w-8 h-8 p-1.5"
+          title="Undo (Ctrl+Z)"
+        >
+          <RotateCcw className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={redo}
+          className="w-8 h-8 p-1.5"
+          title="Redo (Ctrl+Shift+Z)"
+        >
+          <RotateCw className="w-4 h-4" />
+        </Button>
+
+        <Separator orientation="vertical" className="h-4 mx-1" />
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => copyLayers(selectedLayerIds)}
+          disabled={!hasSelection}
+          className="w-8 h-8 p-1.5"
+          title="Copy (Ctrl+C)"
+        >
+          <Copy className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={pasteLayers}
+          className="w-8 h-8 p-1.5"
+          title="Paste (Ctrl+V)"
+        >
+          <Clipboard className="w-4 h-4" />
+        </Button>
+      </div>
+
+      <Separator orientation="vertical" className="h-6" />
+
+      {/* Zoom Controls */}
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleZoomOut}
+          className="w-8 h-8 p-1.5"
+          title="Zoom Out"
+        >
+          <ZoomOut className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setZoom(1)}
+          className="px-2 h-8 text-xs font-medium"
+          title="Reset Zoom (Ctrl+0)"
+        >
+          {Math.round(canvas.zoom * 100)}%
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleZoomIn}
+          className="w-8 h-8 p-1.5"
+          title="Zoom In"
         >
           <ZoomIn className="w-4 h-4" />
         </Button>
-
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
           onClick={fitToSelection}
-          disabled={selectedLayerIds.length === 0}
-          className="w-8 h-8 hover:bg-gray-100"
+          disabled={!hasSelection}
+          className="w-8 h-8 p-1.5"
           title="Fit to Selection (Ctrl+1)"
         >
           <Maximize className="w-4 h-4" />
         </Button>
       </div>
 
-      {/* Right side actions */}
-      <div className="flex-1" />
+      <Separator orientation="vertical" className="h-6" />
 
-      <div className="flex items-center space-x-2">
-        <Button variant="ghost" size="sm" className="hover:bg-gray-100">
-          <Download className="w-4 h-4 mr-2" />
-          Export
-        </Button>
-
-        <Button variant="default" size="sm" className="bg-blue-500 hover:bg-blue-600">
-          <Upload className="w-4 h-4 mr-2" />
-          Save
+      {/* View Controls */}
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            // Toggle grid visibility - implement in store
+          }}
+          className="w-8 h-8 p-1.5"
+          title="Toggle Grid"
+        >
+          <Grid className="w-4 h-4" />
         </Button>
       </div>
+
+      {/* Selection Info */}
+      {hasSelection && (
+        <>
+          <Separator orientation="vertical" className="h-6 ml-auto" />
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <span>{selectedLayerIds.length} selected</span>
+            {selectedLayers.length === 1 && (
+              <Badge variant="outline" className="text-xs">
+                {selectedLayers[0].name}
+              </Badge>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
