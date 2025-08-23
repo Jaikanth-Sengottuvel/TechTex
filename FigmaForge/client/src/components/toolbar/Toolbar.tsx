@@ -22,11 +22,11 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  AlignTop,
-  AlignMiddle,
-  AlignBottom,
-  DistributeHorizontally,
-  DistributeVertically,
+  ArrowUp,
+  Minus as AlignMiddle,
+  ArrowDown,
+  ArrowLeftRight,
+  ArrowUpDown,
   MoveUp,
   MoveDown,
   Group,
@@ -288,7 +288,7 @@ export function Toolbar() {
           className="w-8 h-8 p-1.5"
           title="Align Top"
         >
-          <AlignTop className="w-4 h-4" />
+          <ArrowUp className="w-4 h-4" />
         </Button>
         <Button
           variant="ghost"
@@ -308,7 +308,7 @@ export function Toolbar() {
           className="w-8 h-8 p-1.5"
           title="Align Bottom"
         >
-          <AlignBottom className="w-4 h-4" />
+          <ArrowDown className="w-4 h-4" />
         </Button>
 
         <Separator orientation="vertical" className="h-4 mx-1" />
@@ -321,7 +321,7 @@ export function Toolbar() {
           className="w-8 h-8 p-1.5"
           title="Distribute Horizontally"
         >
-          <DistributeHorizontally className="w-4 h-4" />
+          <ArrowLeftRight className="w-4 h-4" />
         </Button>
         <Button
           variant="ghost"
@@ -331,7 +331,7 @@ export function Toolbar() {
           className="w-8 h-8 p-1.5"
           title="Distribute Vertically"
         >
-          <DistributeVertically className="w-4 h-4" />
+          <ArrowUpDown className="w-4 h-4" />
         </Button>
       </div>
 

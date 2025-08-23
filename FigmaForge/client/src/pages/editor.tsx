@@ -221,7 +221,7 @@ export default function Editor() {
         isRightPanelCollapsed ? "w-0 translate-x-full opacity-0" : "w-80 translate-x-0 opacity-100"
       )}>
         <PropertiesPanel />
-        
+
         {/* Collapse Button */}
         <div className="absolute top-4 -left-8">
           <Button

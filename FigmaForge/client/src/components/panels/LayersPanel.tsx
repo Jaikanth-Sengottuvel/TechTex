@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +28,7 @@ import {
   Hexagon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 const getLayerIcon = (type: string) => {
   switch (type) {
@@ -88,7 +88,7 @@ function LayerItem({
   depth = 0 
 }: LayerItemProps) {
   const IconComponent = getLayerIcon(layer.type);
-  
+
   return (
     <div
       className={cn(
