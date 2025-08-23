@@ -189,11 +189,12 @@ export function Canvas({ className }: CanvasProps) {
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!e) return;
 
-    const coords = getMousePos(e);
-    if (!coords || typeof coords.x !== 'number' || typeof coords.y !== 'number') {
-      console.warn('Invalid coordinates in handleMouseDown');
-      return;
-    }
+    try {
+      const coords = getMousePos(e);
+      if (!coords || typeof coords.x !== 'number' || typeof coords.y !== 'number' || isNaN(coords.x) || isNaN(coords.y)) {
+        console.warn('Invalid coordinates in handleMouseDown:', coords);
+        return;
+      }
 
     setDragStart(coords);
     setIsDragging(true);
@@ -290,13 +291,20 @@ export function Canvas({ className }: CanvasProps) {
         }
         break;
     }
+    } catch (error) {
+      console.error('Error in handleMouseDown:', error);
+    }
   }, [currentTool, getMousePos, getLayerAtPoint, selectedLayerIds, selectLayer, clearSelection, setSelectionBox, setIsMarqueeSelecting, startDrawing, layers, eraserSize, deleteLayer, isSpacePressed]);
 
   // Handle mouse move
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging || !dragStart) return;
 
-    const currentPoint = getMousePos(e);
+    try {
+      const currentPoint = getMousePos(e);
+      if (!currentPoint || typeof currentPoint.x !== 'number' || typeof currentPoint.y !== 'number' || isNaN(currentPoint.x) || isNaN(currentPoint.y)) {
+        return;
+      }
 
     switch (currentTool) {
       case 'move':
@@ -375,13 +383,22 @@ export function Canvas({ className }: CanvasProps) {
         layersToDelete.forEach(layer => deleteLayer(layer.id));
         break;
     }
+    } catch (error) {
+      console.error('Error in handleMouseMove:', error);
+    }
   }, [isDragging, dragStart, currentTool, getMousePos, isSpacePressed, canvas, setPan, isMarqueeSelecting, setSelectionBox, selectedLayerIds, layers, updateLayer, isDrawing, continueDrawing, eraserSize, deleteLayer]);
 
   // Handle mouse up
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (!isDragging || !dragStart) return;
 
-    const currentPoint = getMousePos(e);
+    try {
+      const currentPoint = getMousePos(e);
+      if (!currentPoint || typeof currentPoint.x !== 'number' || typeof currentPoint.y !== 'number' || isNaN(currentPoint.x) || isNaN(currentPoint.y)) {
+        setIsDragging(false);
+        setDragStart(null);
+        return;
+      }
     setIsDragging(false);
     setDragStart(null);
 
@@ -482,6 +499,11 @@ export function Canvas({ className }: CanvasProps) {
       case 'pencil':
         finishDrawing();
         break;
+    }
+    } catch (error) {
+      console.error('Error in handleMouseUp:', error);
+      setIsDragging(false);
+      setDragStart(null);
     }
   }, [isDragging, dragStart, currentTool, getMousePos, isMarqueeSelecting, selectionBox, layers, selectLayer, setSelectionBox, setIsMarqueeSelecting, addLayer, finishDrawing]);
 
@@ -896,10 +918,12 @@ export function Canvas({ className }: CanvasProps) {
       ctx.lineWidth = 1 / safeZoom;
 
       // Calculate grid boundaries considering pan and zoom
+      const canvasWidth = canvas.size?.width || 800;
+      const canvasHeight = canvas.size?.height || 600;
       const gridStartX = Math.floor(-safePanX / safeZoom / gridSize) * gridSize;
       const gridStartY = Math.floor(-safePanY / safeZoom / gridSize) * gridSize;
-      const gridEndX = gridStartX + (canvas.size.width / safeZoom) + gridSize;
-      const gridEndY = gridStartY + (canvas.size.height / safeZoom) + gridSize;
+      const gridEndX = gridStartX + (canvasWidth / safeZoom) + gridSize;
+      const gridEndY = gridStartY + (canvasHeight / safeZoom) + gridSize;
 
       for (let x = gridStartX; x <= gridEndX; x += gridSize) {
         ctx.beginPath();
@@ -999,8 +1023,8 @@ export function Canvas({ className }: CanvasProps) {
     return () => window.removeEventListener('resize', resizeCanvas);
   }, [setCanvasSize]);
 
-  // Add fallback if canvasSize is not available
-  const safeCanvasSize = canvasSize || { width: 800, height: 600 };
+  // Add fallback if canvas.size is not available
+  const safeCanvasSize = canvas.size || { width: 800, height: 600 };
 
   return (
     <div 

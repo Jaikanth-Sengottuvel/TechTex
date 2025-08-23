@@ -117,79 +117,62 @@ export default function Editor() {
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Left Panel */}
       <div className={cn(
-        "flex flex-col bg-white border-r shadow-sm transition-all duration-300 ease-in-out",
-        isLeftPanelCollapsed ? "w-0 -translate-x-full opacity-0" : "w-64 translate-x-0 opacity-100"
+        'flex-shrink-0 bg-white border-r border-gray-200 transition-all duration-300 ease-in-out',
+        isLeftPanelCollapsed ? 'w-0 overflow-hidden opacity-0' : 'w-64 opacity-100'
       )}>
-        {/* Panel Tabs with Animation */}
-        <div className="flex border-b bg-gradient-to-r from-gray-50 to-gray-100 overflow-hidden">
-          <Button
-            variant={leftPanel === 'layers' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setLeftPanel('layers')}
-            className={cn(
-              "flex-1 rounded-none h-11 transition-all duration-300 ease-in-out relative",
-              leftPanel === 'layers' 
-                ? "bg-white shadow-sm border-b-2 border-blue-500 text-blue-700 transform scale-105" 
-                : "hover:bg-white/80 hover:shadow-sm transform hover:scale-102"
-            )}
-          >
-            <Layers className={cn(
-              "w-4 h-4 mr-2 transition-all duration-300",
-              leftPanel === 'layers' ? "text-blue-600" : "text-gray-600"
-            )} />
-            <span className="font-medium">Layers</span>
-            {leftPanel === 'layers' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 animate-in slide-in-from-left duration-300" />
-            )}
-          </Button>
-          <Button
-            variant={leftPanel === 'components' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setLeftPanel('components')}
-            className={cn(
-              "flex-1 rounded-none h-11 transition-all duration-300 ease-in-out relative",
-              leftPanel === 'components' 
-                ? "bg-white shadow-sm border-b-2 border-green-500 text-green-700 transform scale-105" 
-                : "hover:bg-white/80 hover:shadow-sm transform hover:scale-102"
-            )}
-          >
-            <Package className={cn(
-              "w-4 h-4 mr-2 transition-all duration-300",
-              leftPanel === 'components' ? "text-green-600" : "text-gray-600"
-            )} />
-            <span className="font-medium">Components</span>
-            {leftPanel === 'components' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-500 animate-in slide-in-from-left duration-300" />
-            )}
-          </Button>
-        </div>
-
-        {/* Panel Content with Smooth Transition */}
-        <div className="flex-1 relative overflow-hidden">
-          <div className={cn(
-            "absolute inset-0 transition-all duration-300 ease-in-out",
-            leftPanel === 'layers' ? "transform translate-x-0 opacity-100" : "transform -translate-x-full opacity-0"
-          )}>
-            <LayersPanel />
+        <div className={cn(
+          'h-full flex flex-col transition-opacity duration-300',
+          isLeftPanelCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        )}>
+          {/* Panel Header */}
+          <div className="flex items-center justify-between p-3 border-b border-gray-200">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={leftPanel === 'layers' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setLeftPanel('layers')}
+                className="flex items-center gap-2 transition-all duration-200 hover:scale-105"
+              >
+                <Layers className="w-4 h-4" />
+                <span className={cn(
+                  'transition-opacity duration-200',
+                  isLeftPanelCollapsed ? 'opacity-0' : 'opacity-100'
+                )}>
+                  Layers
+                </span>
+              </Button>
+              <Button
+                variant={leftPanel === 'components' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setLeftPanel('components')}
+                className="flex items-center gap-2 transition-all duration-200 hover:scale-105"
+              >
+                <Package className="w-4 h-4" />
+                <span className={cn(
+                  'transition-opacity duration-200',
+                  isLeftPanelCollapsed ? 'opacity-0' : 'opacity-100'
+                )}>
+                  Components
+                </span>
+              </Button>
+            </div>
           </div>
-          <div className={cn(
-            "absolute inset-0 transition-all duration-300 ease-in-out",
-            leftPanel === 'components' ? "transform translate-x-0 opacity-100" : "transform translate-x-full opacity-0"
-          )}>
-            <ComponentLibrary />
-          </div>
-        </div>
 
-        {/* Collapse Button */}
-        <div className="p-2 border-t bg-gray-50">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
-            className="w-full h-8 text-xs hover:bg-gray-200 transition-all duration-200"
-          >
-            {isLeftPanelCollapsed ? 'Expand' : 'Collapse'}
-          </Button>
+          {/* Panel Content */}
+          <div className="flex-1 overflow-hidden">
+            <div className={cn(
+              'transition-all duration-300 ease-in-out',
+              leftPanel === 'layers' ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'
+            )}>
+              {leftPanel === 'layers' && <LayersPanel />}
+            </div>
+            <div className={cn(
+              'transition-all duration-300 ease-in-out',
+              leftPanel === 'components' ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'
+            )}>
+              {leftPanel === 'components' && <ComponentLibrary />}
+            </div>
+          </div>
         </div>
       </div>
 
