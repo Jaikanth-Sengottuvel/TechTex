@@ -1,0 +1,166 @@
+Unified Prompt for Replit Agent – Figma-like Design Tool
+
+Hello Replit Agent 👋,
+
+I’m building a Figma-like design tool and here’s a clear breakdown of issues, feature requests, and QA testing expectations. Please read carefully and implement accordingly.
+
+🐞 1. Current Issues & Bugs to Fix
+
+Deselecting Tools
+
+Once I select a tool (rectangle, circle, text, etc.), I cannot deselect it.
+
+✅ Expected: Click on empty canvas or press Esc should deselect.
+
+Eraser Tool Not Working
+
+The eraser tool is visible but does nothing.
+
+✅ Expected: Should erase paths, drawings, or selected objects.
+
+Textbox Issue
+
+Textbox appears but I cannot type inside.
+
+✅ Expected: Able to type, edit, and format text.
+
+Components & Layers Panel Visibility
+
+Currently visible only on hover.
+
+✅ Expected: Panels should stay permanently visible unless manually collapsed.
+
+Layers Panel Missing Functions
+
+Lacks proper Figma-style features.
+
+✅ Expected: Show all layers, allow rename, drag to reorder, toggle visibility (eye), lock/unlock.
+
+✨ 2. Feature Requests & Enhancements
+🔹 Keyboard Shortcuts
+
+Esc → Deselect
+
+Ctrl+Z / Ctrl+Shift+Z → Undo/Redo
+
+Ctrl+C / Ctrl+V → Copy/Paste
+
+Ctrl+D → Duplicate
+
+Delete → Remove object
+
+Shift+Drag → Constrain proportions
+
+Arrow Keys → Nudge (1px) / Shift+Arrow → Nudge (10px)
+
+Ctrl+G / Ctrl+Shift+G → Group / Ungroup
+
+🔹 Canvas & Zoom
+
+Mouse scroll → Zoom in/out
+
+Ctrl+1 → Fit to selection
+
+Ctrl+0 → Reset zoom
+
+Snap objects to grid/guides
+
+🔹 Tool Behaviors
+
+Rounded corner option for rectangle
+
+Pen tool → curves with Bezier handles
+
+Color picker to sample from canvas
+
+🔹 Image Upload Function
+
+Upload PNG/JPG/SVG
+
+Resize, move, rotate
+
+Opacity slider
+
+Replace image option
+
+Crop/fit adjustments
+
+🤖 3. Advanced New Features (Figma Future-Proofing)
+
+AI-Powered Design Suggestions → Layout, colors, accessibility fixes.
+
+Voice-to-Design Commands → Hands-free designing.
+
+Smart Auto-Layout 2.0 → Responsive web & app layouts.
+
+Built-in Design-to-Code Export → React, Vue, Flutter, SwiftUI.
+
+AI Collaboration Assist → Summarize discussions, resolve design conflicts.
+
+Real-Time Usability Testing (AI Simulation) → Eye-tracking, heatmaps, click paths.
+
+Adaptive Design Tokens → Dynamic updates for brand/dark mode.
+
+3D & AR/VR Design Mode → Mockups for gaming/metaverse.
+
+Smart Asset Generator → AI icons/illustrations from text prompts.
+
+Version Intelligence → AI explains design version changes.
+
+🔹 Bonus Futuristic Ideas: Gesture editing, cross-app sync (Notion/Jira/Trello), auto-generated design docs, AI bug detector.
+
+✅ 4. QA / Testing Checklist
+
+After implementation, test with the following criteria:
+
+Tool Selection & Deselect
+
+Select a tool → draw → click empty space / Esc → deselect.
+
+Eraser
+
+Erase full/partial shapes.
+
+Textbox
+
+Insert → type → edit → format text.
+
+Components & Layers
+
+Always visible unless collapsed.
+
+Show each shape as a layer.
+
+Reorder, rename, lock/unlock, toggle visibility.
+
+Shortcuts
+
+All shortcuts work as listed above.
+
+Canvas & Zoom
+
+Scroll zoom, reset zoom, snap-to-grid.
+
+Tool Behaviors
+
+Rounded rectangles, Bezier pen curves, color picker works.
+
+Image Upload
+
+Upload works for PNG/JPG/SVG.
+
+Resize, rotate, opacity, crop, replace.
+
+🎯 Deliverable
+
+Please:
+
+Fix the bugs.
+
+Add all feature requests + image upload.
+
+Implement new AI-powered features (if possible, iterative build is fine).
+
+Validate with the QA checklist before delivery.
+
+👉 This will bring the tool very close to Figma, while also introducing next-gen AI/AR features that even Figma should consider adopting.
