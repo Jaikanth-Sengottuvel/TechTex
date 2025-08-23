@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useDesignStore, Layer, Point } from '@/stores/designStore';
 import { cn } from '@/lib/utils';
@@ -73,7 +72,7 @@ export function Canvas({ className }: CanvasProps) {
   const getMousePos = useCallback((e: React.MouseEvent): Point => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
-    
+
     return screenToCanvas({
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
@@ -83,7 +82,7 @@ export function Canvas({ className }: CanvasProps) {
   // Hit testing - check if point intersects with layer
   const hitTest = useCallback((point: Point, layer: Layer): boolean => {
     const { transform } = layer;
-    
+
     switch (layer.type) {
       case 'rectangle':
       case 'text':
@@ -92,7 +91,7 @@ export function Canvas({ className }: CanvasProps) {
                point.x <= transform.x + transform.width &&
                point.y >= transform.y &&
                point.y <= transform.y + transform.height;
-      
+
       case 'circle':
         const centerX = transform.x + transform.width / 2;
         const centerY = transform.y + transform.height / 2;
@@ -101,14 +100,14 @@ export function Canvas({ className }: CanvasProps) {
         const dx = (point.x - centerX) / radiusX;
         const dy = (point.y - centerY) / radiusY;
         return dx * dx + dy * dy <= 1;
-      
+
       case 'triangle':
         // Simple triangle hit test - within bounding box for now
         return point.x >= transform.x &&
                point.x <= transform.x + transform.width &&
                point.y >= transform.y &&
                point.y <= transform.y + transform.height;
-      
+
       case 'star':
         // Simple star hit test - within bounding box for now
         const starCenterX = transform.x + transform.width / 2;
@@ -117,7 +116,7 @@ export function Canvas({ className }: CanvasProps) {
           Math.pow(point.x - starCenterX, 2) + Math.pow(point.y - starCenterY, 2)
         );
         return distance <= Math.min(transform.width, transform.height) / 2;
-      
+
       case 'line':
         if (!layer.points || layer.points.length < 2) return false;
         // Simple line hit test - check distance to line segment
@@ -126,7 +125,7 @@ export function Canvas({ className }: CanvasProps) {
         const p2 = layer.points[1];
         const dist = distanceToLine(point, p1, p2);
         return dist <= strokeWidth / 2 + 3; // 3px tolerance
-      
+
       case 'path':
         if (!layer.points || layer.points.length < 2) return false;
         const pathStrokeWidth = layer.style.strokeWidth || 1;
@@ -136,7 +135,7 @@ export function Canvas({ className }: CanvasProps) {
           if (dist <= pathStrokeWidth / 2 + 3) return true;
         }
         return false;
-      
+
       default:
         return false;
     }
@@ -177,7 +176,7 @@ export function Canvas({ className }: CanvasProps) {
     const sortedLayers = [...layers]
       .filter(layer => layer.visible && !layer.locked)
       .sort((a, b) => b.zIndex - a.zIndex);
-    
+
     for (const layer of sortedLayers) {
       if (hitTest(point, layer)) {
         return layer;
@@ -188,9 +187,15 @@ export function Canvas({ className }: CanvasProps) {
 
   // Handle mouse down
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    const point = getMousePos(e);
-    setDragStart(point);
+    if (!e) return;
+
+    const coords = getMousePos(e);
+    if (!coords || typeof coords.x !== 'number' || typeof coords.y !== 'number') {
+      console.warn('Invalid coordinates in handleMouseDown');
+      return;
+    }
+
+    setDragStart(coords);
     setIsDragging(true);
 
     // Handle different tools
@@ -200,9 +205,9 @@ export function Canvas({ className }: CanvasProps) {
           // Pan mode
           return;
         }
-        
-        const hitLayer = getLayerAtPoint(point);
-        
+
+        const hitLayer = getLayerAtPoint(coords);
+
         if (hitLayer) {
           if (!selectedLayerIds.includes(hitLayer.id)) {
             selectLayer(hitLayer.id, e.ctrlKey || e.metaKey);
@@ -210,7 +215,7 @@ export function Canvas({ className }: CanvasProps) {
         } else {
           // Start marquee selection
           clearSelection();
-          setSelectionBox({ x: point.x, y: point.y, width: 0, height: 0 });
+          setSelectionBox({ x: coords.x, y: coords.y, width: 0, height: 0 });
           setIsMarqueeSelecting(true);
         }
         break;
@@ -228,12 +233,12 @@ export function Canvas({ className }: CanvasProps) {
 
       case 'line':
         // Start drawing line
-        startDrawing(point);
+        startDrawing(coords);
         break;
 
       case 'pencil':
         // Start drawing freehand path
-        startDrawing(point);
+        startDrawing(coords);
         break;
 
       case 'pen':
@@ -242,12 +247,12 @@ export function Canvas({ className }: CanvasProps) {
 
       case 'text':
         // Create text layer or start editing
-        const existingTextLayer = getLayerAtPoint(point);
+        const existingTextLayer = getLayerAtPoint(coords);
         if (existingTextLayer && existingTextLayer.type === 'text') {
           // Edit existing text
           setTextInput({
-            x: point.x,
-            y: point.y,
+            x: coords.x,
+            y: coords.y,
             visible: true,
             value: existingTextLayer.text || '',
             layerId: existingTextLayer.id,
@@ -255,8 +260,8 @@ export function Canvas({ className }: CanvasProps) {
         } else {
           // Create new text
           setTextInput({
-            x: point.x,
-            y: point.y,
+            x: coords.x,
+            y: coords.y,
             visible: true,
             value: '',
           });
@@ -267,18 +272,18 @@ export function Canvas({ className }: CanvasProps) {
         // Delete objects under eraser
         const layersToDelete = layers.filter(layer => {
           const distance = Math.sqrt(
-            Math.pow(point.x - (layer.transform.x + layer.transform.width / 2), 2) +
-            Math.pow(point.y - (layer.transform.y + layer.transform.height / 2), 2)
+            Math.pow(coords.x - (layer.transform.x + layer.transform.width / 2), 2) +
+            Math.pow(coords.y - (layer.transform.y + layer.transform.height / 2), 2)
           );
           return distance <= eraserSize / 2;
         });
-        
+
         layersToDelete.forEach(layer => deleteLayer(layer.id));
         break;
 
       case 'eyedropper':
         // Sample color from layer
-        const targetLayer = getLayerAtPoint(point);
+        const targetLayer = getLayerAtPoint(coords);
         if (targetLayer) {
           // Color sampling would be implemented here
           console.log('Sampled color from:', targetLayer.style.fill);
@@ -290,7 +295,7 @@ export function Canvas({ className }: CanvasProps) {
   // Handle mouse move
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging || !dragStart) return;
-    
+
     const currentPoint = getMousePos(e);
 
     switch (currentTool) {
@@ -316,7 +321,7 @@ export function Canvas({ className }: CanvasProps) {
           // Move selected objects
           const deltaX = currentPoint.x - dragStart.x;
           const deltaY = currentPoint.y - dragStart.y;
-          
+
           selectedLayerIds.forEach(id => {
             const layer = layers.find(l => l.id === id);
             if (layer && !layer.locked) {
@@ -366,7 +371,7 @@ export function Canvas({ className }: CanvasProps) {
           );
           return distance <= eraserSize / 2;
         });
-        
+
         layersToDelete.forEach(layer => deleteLayer(layer.id));
         break;
     }
@@ -375,7 +380,7 @@ export function Canvas({ className }: CanvasProps) {
   // Handle mouse up
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (!isDragging || !dragStart) return;
-    
+
     const currentPoint = getMousePos(e);
     setIsDragging(false);
     setDragStart(null);
@@ -396,11 +401,11 @@ export function Canvas({ className }: CanvasProps) {
                      layerCenter.y <= selectionBox.y + selectionBox.height;
             })
             .map(layer => layer.id);
-          
+
           if (selectedIds.length > 0) {
             selectedIds.forEach(id => selectLayer(id, true));
           }
-          
+
           setSelectionBox(null);
           setIsMarqueeSelecting(false);
         }
@@ -413,7 +418,7 @@ export function Canvas({ className }: CanvasProps) {
         // Create shape
         const width = Math.abs(currentPoint.x - dragStart.x);
         const height = Math.abs(currentPoint.y - dragStart.y);
-        
+
         if (width > 5 && height > 5) {
           const shapeLayer = {
             type: currentTool as 'rectangle' | 'circle' | 'triangle' | 'star',
@@ -440,7 +445,7 @@ export function Canvas({ className }: CanvasProps) {
             visible: true,
             locked: false,
           };
-          
+
           addLayer(shapeLayer);
         }
         break;
@@ -469,7 +474,7 @@ export function Canvas({ className }: CanvasProps) {
           locked: false,
           points: [dragStart, currentPoint],
         };
-        
+
         addLayer(lineLayer);
         finishDrawing();
         break;
@@ -483,24 +488,24 @@ export function Canvas({ className }: CanvasProps) {
   // Handle wheel event for zooming
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    
+
     if (e.ctrlKey || e.metaKey) {
       // Zoom
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
-      
+
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      
+
       const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
       const newZoom = canvas.zoom * zoomFactor;
-      
+
       // Zoom towards mouse position
       const newPan = {
         x: mouseX - (mouseX - canvas.pan.x) * (newZoom / canvas.zoom),
         y: mouseY - (mouseY - canvas.pan.y) * (newZoom / canvas.zoom),
       };
-      
+
       setZoom(newZoom);
       setPan(newPan);
     } else {
@@ -549,10 +554,10 @@ export function Canvas({ className }: CanvasProps) {
         locked: false,
         text: textInput.value,
       };
-      
+
       addLayer(textLayer);
     }
-    
+
     setTextInput({ x: 0, y: 0, visible: false, value: '' });
   };
 
@@ -575,7 +580,7 @@ export function Canvas({ className }: CanvasProps) {
           ['v', 'h', 'r', 'o', 'l', 'b', 'p', 'e', 't', 'i'].includes(e.key.toLowerCase())) {
         e.preventDefault();
       }
-      
+
       // Handle space for hand tool
       if (e.key === ' ' && !isSpacePressed) {
         setIsSpacePressed(true);
@@ -677,11 +682,11 @@ export function Canvas({ className }: CanvasProps) {
     if (!layer.visible) return;
 
     ctx.save();
-    
+
     // Apply transform
     const { transform, style } = layer;
     ctx.globalAlpha = style.opacity;
-    
+
     // Apply fill and stroke
     ctx.fillStyle = style.fill;
     ctx.strokeStyle = style.stroke || 'transparent';
@@ -698,7 +703,7 @@ export function Canvas({ className }: CanvasProps) {
           ctx.beginPath();
           ctx.rect(transform.x, transform.y, transform.width, transform.height);
         }
-        
+
         if (style.fill !== 'transparent') ctx.fill();
         if (style.stroke !== 'transparent' && style.strokeWidth! > 0) ctx.stroke();
         break;
@@ -708,10 +713,10 @@ export function Canvas({ className }: CanvasProps) {
         const centerY = transform.y + transform.height / 2;
         const radiusX = transform.width / 2;
         const radiusY = transform.height / 2;
-        
+
         ctx.beginPath();
         ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
-        
+
         if (style.fill !== 'transparent') ctx.fill();
         if (style.stroke !== 'transparent' && style.strokeWidth! > 0) ctx.stroke();
         break;
@@ -722,13 +727,13 @@ export function Canvas({ className }: CanvasProps) {
         const triangleBottom = transform.y + transform.height;
         const triangleLeft = transform.x;
         const triangleRight = transform.x + transform.width;
-        
+
         ctx.beginPath();
         ctx.moveTo(triangleCenterX, triangleTop);
         ctx.lineTo(triangleRight, triangleBottom);
         ctx.lineTo(triangleLeft, triangleBottom);
         ctx.closePath();
-        
+
         if (style.fill !== 'transparent') ctx.fill();
         if (style.stroke !== 'transparent' && style.strokeWidth! > 0) ctx.stroke();
         break;
@@ -739,14 +744,14 @@ export function Canvas({ className }: CanvasProps) {
         const outerRadius = Math.min(transform.width, transform.height) / 2;
         const innerRadius = outerRadius * 0.4;
         const spikes = 5;
-        
+
         ctx.beginPath();
         for (let i = 0; i < spikes * 2; i++) {
           const radius = i % 2 === 0 ? outerRadius : innerRadius;
           const angle = (i * Math.PI) / spikes;
           const x = starCenterX + Math.cos(angle - Math.PI / 2) * radius;
           const y = starCenterY + Math.sin(angle - Math.PI / 2) * radius;
-          
+
           if (i === 0) {
             ctx.moveTo(x, y);
           } else {
@@ -754,7 +759,7 @@ export function Canvas({ className }: CanvasProps) {
           }
         }
         ctx.closePath();
-        
+
         if (style.fill !== 'transparent') ctx.fill();
         if (style.stroke !== 'transparent' && style.strokeWidth! > 0) ctx.stroke();
         break;
@@ -797,7 +802,7 @@ export function Canvas({ className }: CanvasProps) {
         ctx.fillRect(transform.x, transform.y, transform.width, transform.height);
         ctx.strokeStyle = '#ccc';
         ctx.strokeRect(transform.x, transform.y, transform.width, transform.height);
-        
+
         // Draw placeholder
         ctx.fillStyle = '#999';
         ctx.font = '14px Inter, sans-serif';
@@ -816,14 +821,14 @@ export function Canvas({ className }: CanvasProps) {
     const handleSize = 8 / canvas.zoom;
     const handleColor = '#007acc';
     const handleStroke = '#ffffff';
-    
+
     // Selection bounds
     ctx.strokeStyle = handleColor;
     ctx.setLineDash([5 / canvas.zoom, 5 / canvas.zoom]);
     ctx.lineWidth = 1 / canvas.zoom;
     ctx.strokeRect(transform.x, transform.y, transform.width, transform.height);
     ctx.setLineDash([]);
-    
+
     // Corner handles
     const handles = [
       { x: transform.x, y: transform.y }, // Top-left
@@ -836,7 +841,7 @@ export function Canvas({ className }: CanvasProps) {
       { x: transform.x + transform.width / 2, y: transform.y + transform.height }, // Bottom-center
       { x: transform.x, y: transform.y + transform.height / 2 }, // Left-center
     ];
-    
+
     handles.forEach(handle => {
       ctx.fillStyle = handleColor;
       ctx.strokeStyle = handleStroke;
@@ -844,20 +849,20 @@ export function Canvas({ className }: CanvasProps) {
       ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
       ctx.strokeRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
     });
-    
+
     // Rotation handle
     const rotationHandle = {
       x: transform.x + transform.width / 2,
       y: transform.y - 20 / canvas.zoom,
     };
-    
+
     ctx.beginPath();
     ctx.arc(rotationHandle.x, rotationHandle.y, handleSize / 2, 0, 2 * Math.PI);
     ctx.fillStyle = handleColor;
     ctx.fill();
     ctx.strokeStyle = handleStroke;
     ctx.stroke();
-    
+
     // Line to rotation handle
     ctx.beginPath();
     ctx.moveTo(transform.x + transform.width / 2, transform.y);
@@ -866,44 +871,47 @@ export function Canvas({ className }: CanvasProps) {
     ctx.stroke();
   }, [canvas.zoom]);
 
-  // Render canvas
-  useEffect(() => {
+  // Main draw function
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Apply canvas transform
+    // Apply transformations with safety checks
     ctx.save();
-    ctx.scale(canvas.zoom, canvas.zoom);
-    ctx.translate(canvas.pan.x / canvas.zoom, canvas.pan.y / canvas.zoom);
+    const safePanX = canvas.pan?.x || 0;
+    const safePanY = canvas.pan?.y || 0;
+    const safeZoom = canvas.zoom || 1;
+
+    ctx.translate(safePanX, safePanY);
+    ctx.scale(safeZoom, safeZoom);
 
     // Draw grid
     if (canvas.showGrid) {
       const gridSize = canvas.gridSize;
       ctx.strokeStyle = '#e0e0e0';
-      ctx.lineWidth = 1 / canvas.zoom;
-      
-      const startX = Math.floor(-canvas.pan.x / canvas.zoom / gridSize) * gridSize;
-      const startY = Math.floor(-canvas.pan.y / canvas.zoom / gridSize) * gridSize;
-      const endX = startX + (canvas.size.width / canvas.zoom) + gridSize;
-      const endY = startY + (canvas.size.height / canvas.zoom) + gridSize;
-      
-      for (let x = startX; x <= endX; x += gridSize) {
+      ctx.lineWidth = 1 / safeZoom;
+
+      // Calculate grid boundaries considering pan and zoom
+      const gridStartX = Math.floor(-safePanX / safeZoom / gridSize) * gridSize;
+      const gridStartY = Math.floor(-safePanY / safeZoom / gridSize) * gridSize;
+      const gridEndX = gridStartX + (canvas.size.width / safeZoom) + gridSize;
+      const gridEndY = gridStartY + (canvas.size.height / safeZoom) + gridSize;
+
+      for (let x = gridStartX; x <= gridEndX; x += gridSize) {
         ctx.beginPath();
-        ctx.moveTo(x, startY);
-        ctx.lineTo(x, endY);
+        ctx.moveTo(x, gridStartY);
+        ctx.lineTo(x, gridEndY);
         ctx.stroke();
       }
-      
-      for (let y = startY; y <= endY; y += gridSize) {
+
+      for (let y = gridStartY; y <= gridEndY; y += gridSize) {
         ctx.beginPath();
-        ctx.moveTo(startX, y);
-        ctx.lineTo(endX, y);
+        ctx.moveTo(gridStartX, y);
+        ctx.lineTo(gridEndX, y);
         ctx.stroke();
       }
     }
@@ -915,7 +923,7 @@ export function Canvas({ className }: CanvasProps) {
     // Draw current drawing path
     if (isDrawing && drawingPath.length > 0) {
       ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 2 / canvas.zoom;
+      ctx.lineWidth = 2 / safeZoom;
       ctx.beginPath();
       ctx.moveTo(drawingPath[0].x, drawingPath[0].y);
       for (let i = 1; i < drawingPath.length; i++) {
@@ -936,8 +944,8 @@ export function Canvas({ className }: CanvasProps) {
     if (selectionBox && isMarqueeSelecting) {
       ctx.strokeStyle = '#007acc';
       ctx.fillStyle = 'rgba(0, 122, 204, 0.1)';
-      ctx.setLineDash([5 / canvas.zoom, 5 / canvas.zoom]);
-      ctx.lineWidth = 1 / canvas.zoom;
+      ctx.setLineDash([5 / safeZoom, 5 / safeZoom]);
+      ctx.lineWidth = 1 / safeZoom;
       ctx.fillRect(selectionBox.x, selectionBox.y, selectionBox.width, selectionBox.height);
       ctx.strokeRect(selectionBox.x, selectionBox.y, selectionBox.width, selectionBox.height);
       ctx.setLineDash([]);
@@ -947,7 +955,7 @@ export function Canvas({ className }: CanvasProps) {
     if (currentTool === 'eraser' && dragStart) {
       ctx.strokeStyle = '#ff0000';
       ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
-      ctx.lineWidth = 2 / canvas.zoom;
+      ctx.lineWidth = 2 / safeZoom;
       ctx.beginPath();
       ctx.arc(dragStart.x, dragStart.y, eraserSize / 2, 0, 2 * Math.PI);
       ctx.fill();
@@ -956,6 +964,22 @@ export function Canvas({ className }: CanvasProps) {
 
     ctx.restore();
   }, [layers, selectedLayerIds, canvas, drawLayer, drawSelectionHandles, selectionBox, isMarqueeSelecting, isDrawing, drawingPath, currentTool, dragStart, eraserSize]);
+
+
+  // Render canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      console.warn('Canvas not available for drawing');
+      return;
+    }
+
+    try {
+      draw();
+    } catch (error) {
+      console.error('Error drawing canvas:', error);
+    }
+  }, [draw]);
 
   // Update canvas size
   useEffect(() => {
@@ -975,10 +999,18 @@ export function Canvas({ className }: CanvasProps) {
     return () => window.removeEventListener('resize', resizeCanvas);
   }, [setCanvasSize]);
 
+  // Add fallback if canvasSize is not available
+  const safeCanvasSize = canvasSize || { width: 800, height: 600 };
+
   return (
-    <div ref={containerRef} className={cn('relative w-full h-full bg-gray-100 overflow-hidden', className)}>
+    <div 
+      ref={containerRef}
+      className={cn('relative w-full h-full bg-gray-100 overflow-hidden', className)}
+    >
       <canvas
         ref={canvasRef}
+        width={safeCanvasSize.width}
+        height={safeCanvasSize.height}
         className="absolute inset-0 cursor-crosshair"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -992,7 +1024,7 @@ export function Canvas({ className }: CanvasProps) {
                  currentTool === 'eraser' ? 'crosshair' : 'crosshair'
         }}
       />
-      
+
       {/* Text Input Overlay */}
       {textInput.visible && (
         <textarea

@@ -1,9 +1,8 @@
-
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 
-export type Tool = 
-  | 'move' | 'hand' | 'rectangle' | 'circle' | 'triangle' | 'star' 
+export type Tool =
+  | 'move' | 'hand' | 'rectangle' | 'circle' | 'triangle' | 'star'
   | 'polygon' | 'line' | 'pencil' | 'pen' | 'eraser' | 'text' | 'eyedropper';
 
 export interface Point {
@@ -81,32 +80,32 @@ interface DesignState {
   // Tools
   currentTool: Tool;
   setCurrentTool: (tool: Tool) => void;
-  
+
   // Layers
   layers: Layer[];
   selectedLayerIds: string[];
   hoveredLayerId: string | null;
   clipboard: Layer[];
   history: History;
-  
+
   // Canvas
   canvas: CanvasState;
-  
+
   // Drawing states
   isDrawing: boolean;
   drawingPath: Point[];
   currentBezierPath: Point[];
   isEditingPath: boolean;
   editingPathId: string | null;
-  
+
   // Selection
   selectionBox: SelectionBox | null;
   isMarqueeSelecting: boolean;
-  
+
   // UI States
   showHandles: boolean;
   eraserSize: number;
-  
+
   // Actions
   addLayer: (layer: Omit<Layer, 'id' | 'zIndex'>) => void;
   updateLayer: (id: string, updates: Partial<Layer>) => void;
@@ -119,29 +118,29 @@ interface DesignState {
   reorderLayer: (dragId: string, hoverId: string) => void;
   groupLayers: (layerIds: string[]) => void;
   ungroupLayers: (groupId: string) => void;
-  
+
   // Canvas actions
   setCanvasSize: (size: { width: number; height: number }) => void;
   setZoom: (zoom: number) => void;
   setPan: (pan: { x: number; y: number }) => void;
   resetView: () => void;
   fitToSelection: () => void;
-  
+
   // History
   undo: () => void;
   redo: () => void;
   saveHistory: () => void;
-  
+
   // Drawing
   startDrawing: (point: Point) => void;
   continueDrawing: (point: Point) => void;
   finishDrawing: () => void;
   cancelDrawing: () => void;
-  
+
   // Clipboard
   copyLayers: (layerIds: string[]) => void;
   pasteLayers: () => void;
-  
+
   // Utility
   setHoveredLayer: (id: string | null) => void;
   setSelectionBox: (box: SelectionBox | null) => void;
@@ -195,12 +194,12 @@ export const useDesignStore = create<DesignState>()(
         id: generateId(),
         zIndex: get().layers.length,
       };
-      
+
       set((state) => ({
         layers: [...state.layers, layer],
         selectedLayerIds: [layer.id],
       }));
-      
+
       get().saveHistory();
     },
 
@@ -240,7 +239,7 @@ export const useDesignStore = create<DesignState>()(
         layers: [...state.layers, duplicated],
         selectedLayerIds: [duplicated.id],
       }));
-      
+
       get().saveHistory();
     },
 
@@ -260,9 +259,9 @@ export const useDesignStore = create<DesignState>()(
 
     selectLayers: (ids) => set({ selectedLayerIds: ids }),
 
-    clearSelection: () => set({ 
-      selectedLayerIds: [], 
-      isEditingPath: false, 
+    clearSelection: () => set({
+      selectedLayerIds: [],
+      isEditingPath: false,
       editingPathId: null,
       selectionBox: null,
       isMarqueeSelecting: false
@@ -294,7 +293,7 @@ export const useDesignStore = create<DesignState>()(
           l.id === id ? { ...l, zIndex: newZIndex } : l
         ),
       }));
-      
+
       get().saveHistory();
     },
 
@@ -302,13 +301,13 @@ export const useDesignStore = create<DesignState>()(
       const layers = get().layers;
       const dragIndex = layers.findIndex((l) => l.id === dragId);
       const hoverIndex = layers.findIndex((l) => l.id === hoverId);
-      
+
       if (dragIndex === -1 || hoverIndex === -1) return;
 
       const newLayers = [...layers];
       const [draggedLayer] = newLayers.splice(dragIndex, 1);
       newLayers.splice(hoverIndex, 0, draggedLayer);
-      
+
       // Update z-indices
       const updatedLayers = newLayers.map((layer, index) => ({
         ...layer,
@@ -321,10 +320,10 @@ export const useDesignStore = create<DesignState>()(
 
     groupLayers: (layerIds) => {
       if (layerIds.length < 2) return;
-      
+
       const layers = get().layers;
       const layersToGroup = layers.filter((l) => layerIds.includes(l.id));
-      
+
       // Calculate bounding box
       const bounds = layersToGroup.reduce((acc, layer) => ({
         minX: Math.min(acc.minX, layer.transform.x),
@@ -371,7 +370,7 @@ export const useDesignStore = create<DesignState>()(
         ],
         selectedLayerIds: [group.id],
       }));
-      
+
       get().saveHistory();
     },
 
@@ -385,7 +384,7 @@ export const useDesignStore = create<DesignState>()(
           .map((l) => l.parentId === groupId ? { ...l, parentId: undefined } : l),
         selectedLayerIds: group.children || [],
       }));
-      
+
       get().saveHistory();
     },
 
@@ -430,14 +429,14 @@ export const useDesignStore = create<DesignState>()(
       const padding = 50;
       const boundingWidth = bounds.maxX - bounds.minX + padding * 2;
       const boundingHeight = bounds.maxY - bounds.minY + padding * 2;
-      
+
       const zoomX = canvas.size.width / boundingWidth;
       const zoomY = canvas.size.height / boundingHeight;
       const zoom = Math.min(zoomX, zoomY, 2);
 
       const centerX = (bounds.minX + bounds.maxX) / 2;
       const centerY = (bounds.minY + bounds.maxY) / 2;
-      
+
       const pan = {
         x: canvas.size.width / 2 - centerX * zoom,
         y: canvas.size.height / 2 - centerY * zoom,
@@ -463,10 +462,10 @@ export const useDesignStore = create<DesignState>()(
     undo: () => {
       set((state) => {
         if (state.history.past.length === 0) return state;
-        
+
         const previous = state.history.past[state.history.past.length - 1];
         const newPast = state.history.past.slice(0, -1);
-        
+
         return {
           history: {
             past: newPast,
@@ -482,10 +481,10 @@ export const useDesignStore = create<DesignState>()(
     redo: () => {
       set((state) => {
         if (state.history.future.length === 0) return state;
-        
+
         const next = state.history.future[0];
         const newFuture = state.history.future.slice(1);
-        
+
         return {
           history: {
             past: [...state.history.past, state.history.present],
@@ -499,21 +498,21 @@ export const useDesignStore = create<DesignState>()(
     },
 
     // Drawing
-    startDrawing: (point) => set({ 
-      isDrawing: true, 
-      drawingPath: [point] 
+    startDrawing: (point) => set({
+      isDrawing: true,
+      drawingPath: [point]
     }),
 
     continueDrawing: (point) => {
       const state = get();
       if (!state.isDrawing) return;
-      
+
       set({ drawingPath: [...state.drawingPath, point] });
     },
 
     finishDrawing: () => {
       const { drawingPath, currentTool } = get();
-      
+
       if (drawingPath.length < 2) {
         set({ isDrawing: false, drawingPath: [] });
         return;
@@ -543,15 +542,15 @@ export const useDesignStore = create<DesignState>()(
           locked: false,
           points: drawingPath,
         };
-        
+
         get().addLayer(layer);
       }
-      
+
       set({ isDrawing: false, drawingPath: [] });
     },
 
-    cancelDrawing: () => set({ 
-      isDrawing: false, 
+    cancelDrawing: () => set({
+      isDrawing: false,
       drawingPath: [],
       currentBezierPath: [],
       isEditingPath: false,
@@ -584,7 +583,7 @@ export const useDesignStore = create<DesignState>()(
         layers: [...state.layers, ...newLayers],
         selectedLayerIds: newLayers.map((l) => l.id),
       }));
-      
+
       get().saveHistory();
     },
 
@@ -596,14 +595,14 @@ export const useDesignStore = create<DesignState>()(
 
     nudgeLayers: (direction, distance) => {
       const { selectedLayerIds } = get();
-      
+
       selectedLayerIds.forEach((id) => {
         const layer = get().layers.find((l) => l.id === id);
         if (!layer || layer.locked) return;
 
         let deltaX = 0;
         let deltaY = 0;
-        
+
         switch (direction) {
           case 'left': deltaX = -distance; break;
           case 'right': deltaX = distance; break;
@@ -619,7 +618,7 @@ export const useDesignStore = create<DesignState>()(
           },
         });
       });
-      
+
       if (selectedLayerIds.length > 0) {
         get().saveHistory();
       }
@@ -630,9 +629,9 @@ export const useDesignStore = create<DesignState>()(
       if (selectedLayerIds.length < 2) return;
 
       const selectedLayers = layers.filter((l) => selectedLayerIds.includes(l.id));
-      
+
       let referenceValue: number;
-      
+
       switch (alignment) {
         case 'left':
           referenceValue = Math.min(...selectedLayers.map((l) => l.transform.x));
@@ -683,7 +682,7 @@ export const useDesignStore = create<DesignState>()(
           });
           break;
       }
-      
+
       get().saveHistory();
     },
 
@@ -698,7 +697,7 @@ export const useDesignStore = create<DesignState>()(
         const totalWidth = selectedLayers[selectedLayers.length - 1].transform.x + selectedLayers[selectedLayers.length - 1].transform.width - selectedLayers[0].transform.x;
         const objectsWidth = selectedLayers.reduce((sum, layer) => sum + layer.transform.width, 0);
         const spacing = (totalWidth - objectsWidth) / (selectedLayers.length - 1);
-        
+
         let currentX = selectedLayers[0].transform.x + selectedLayers[0].transform.width;
         for (let i = 1; i < selectedLayers.length - 1; i++) {
           get().updateLayer(selectedLayers[i].id, {
@@ -710,7 +709,7 @@ export const useDesignStore = create<DesignState>()(
         const totalHeight = selectedLayers[selectedLayers.length - 1].transform.y + selectedLayers[selectedLayers.length - 1].transform.height - selectedLayers[0].transform.y;
         const objectsHeight = selectedLayers.reduce((sum, layer) => sum + layer.transform.height, 0);
         const spacing = (totalHeight - objectsHeight) / (selectedLayers.length - 1);
-        
+
         let currentY = selectedLayers[0].transform.y + selectedLayers[0].transform.height;
         for (let i = 1; i < selectedLayers.length - 1; i++) {
           get().updateLayer(selectedLayers[i].id, {
@@ -719,7 +718,7 @@ export const useDesignStore = create<DesignState>()(
           currentY += selectedLayers[i].transform.height + spacing;
         }
       }
-      
+
       get().saveHistory();
     },
   }))
